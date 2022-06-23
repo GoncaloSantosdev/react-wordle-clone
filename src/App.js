@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
+// Data
 import { answerList, wordList } from "./wordleWords.js";
+// Guess List 
 const defaultGuessList = [
   [
     {
@@ -136,25 +138,30 @@ const defaultGuessList = [
   ],
 ];
 
-const keysRow1 = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"];
-const keysRow2 = ["a", "s", "d", "f", "g", "h", "j", "k", "l"];
-const keysRow3 = ["Delete", "z", "x", "c", "v", "b", "n", "m", "Enter"];
-const keyBoardArr = [keysRow1, keysRow2, keysRow3];
-const allKeys = [...keysRow1, ...keysRow2, ...keysRow3, "Backspace"];
+// Keys
+const keysRow_1 = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"];
+const keysRow_2 = ["a", "s", "d", "f", "g", "h", "j", "k", "l"];
+const keysRow_3 = ["Delete", "z", "x", "c", "v", "b", "n", "m", "Enter"];
+const keyBoardArr = [keysRow_1, keysRow_2, keysRow_3];
+const allKeys = [...keysRow_1, ...keysRow_2, ...keysRow_3, "Backspace"];
 
-function App() {
+const App = () => {
   const [wordleGuessList, setWordleGuessList] = useState(
     JSON.parse(JSON.stringify(defaultGuessList))
   );
+
   const [letterColor, setLetterColor] = useState({});
   const [arrCoords, setArrayCoords] = useState([0, 0]);
   const [wordleAnswer, setWordleAnswer] = useState(pickWordleAnswer());
   const [wordleAnswerArr, setWordleAnswerArr] = useState(
     wordleAnswer.split("")
   );
-  const [gameState, setGameState] = useState("playing");
+  const [game, setGame] = useState("playing");
 
   const handleKeyEvent = (letter) => {
+    if (game !== "playing") {
+      return;
+    }
     const newGuess = handleNewGuess(letter);
 
     const arrCoordsCopy = [...arrCoords];
@@ -167,6 +174,7 @@ function App() {
       JSON.parse(JSON.stringify(wordleGuessList[4])),
       JSON.parse(JSON.stringify(wordleGuessList[5])),
     ];
+
     const rowCoord = arrCoordsCopy[0];
     const wordleRow = wordleGuessListCopy[rowCoord];
     const colCoord = arrCoordsCopy[1];
@@ -174,16 +182,18 @@ function App() {
       return key.letter;
     });
 
-    if (gameState !== "playing") {
+    if (game !== "playing") {
       return;
     }
 
     if (newGuess === "Enter") {
-      const newUpdateArrCoords = handleEnter(
-        wordleRowLettersArr,
-        arrCoordsCopy,
-        wordleAnswer
-      );
+      const validGuess = handleEnter(wordleRowLettersArr, wordleAnswer);
+
+      if (!validGuess) {
+        return;
+      }
+
+      const newUpdateArrCoords = handleArrCoords(arrCoordsCopy);
 
       setArrayCoords(newUpdateArrCoords);
       wordleGuessListCopy[rowCoord] = updateSquareClassName(
@@ -202,12 +212,12 @@ function App() {
 
       setLetterColor(updatedLetterColor);
 
-      const newGameState = winOrLose(
+      const newGame = winOrLose(
         wordleRowLettersArr,
         wordleAnswer,
         rowCoord
       );
-      setGameState(newGameState);
+      setGame(newGame);
       return;
     }
 
@@ -235,8 +245,8 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Wordle</h1>
-        <div>Answer: {wordleAnswer}</div>
+        <h1 className="App-link">Wordle Copy</h1>
+        {/* <div>Answer: {wordleAnswer}</div> */}
         <WordleGrid wordleGuessList={wordleGuessList} />
         <WordleKeyboard
           handleKeyEvent={handleKeyEvent}
@@ -288,9 +298,6 @@ const KeyComponent = ({ letter, handleKeyEvent, letterColor }) => {
   const letterColorCheck = letterColor[letter]
     ? letterColor[letter]
     : "Keyboard-key";
-  // console.log(letterColor[newLetter]);
-  // const letterColorCheck = setKeyboardClassName(letterColor, letter);
-  // console.log(letterColorCheck);
   return (
     <div
       className={letterColorCheck}
@@ -368,18 +375,26 @@ const updateColCoord = (newGuess, colCoord) => {
   return colCoord + 1;
 };
 
-const handleEnter = (wordleRowLettersArr, newArrCoords, wordleAnswer) => {
+const handleEnter = (wordleRowLettersArr, wordleAnswer) => {
   if (wordleRowLettersArr.includes("")) {
     alert("Too short");
-    return newArrCoords;
+    return false;
   }
   const userWord = wordleRowLettersArr.join("");
 
   if (!answerList.includes(userWord) && !wordList.includes(userWord)) {
     alert("Word not found");
-    return newArrCoords;
+    return false;
   }
 
+  if (userWord !== wordleAnswer) {
+    alert("Sorry, wrong guess");
+  }
+
+  return true;
+};
+
+const handleArrCoords = (newArrCoords) => {
   const xCoor = newArrCoords[0] + 1;
   return [xCoor, 0];
 };
@@ -486,6 +501,7 @@ const winOrLose = (wordleRowLettersArr, wordleAnswer, rowCoord) => {
   }
   if (rowCoord === 5) {
     alert("Sorry, you lost.");
+    alert("The Wordle Word is: " + wordleAnswer.toUpperCase());
 
     return "lost";
   }
